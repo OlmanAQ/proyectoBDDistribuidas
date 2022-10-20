@@ -517,11 +517,63 @@ class TerceraPagina(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         self.controller = controller
-        label = tk.Label(self, text="This is page 3", font=controller.title_font)
+        label = tk.Label(self, text="Segmentación Horizontal", font=controller.title_font)
         label.pack(side="top", fill="x", pady=10)
+        
+        #self.check = tk.Checkbutton(self, text="Segmentación Horizontal", font = ("Arial Black",10,"bold"))
+        #self.check.pack(side="top", fill="x", pady=10)
+        
         button = tk.Button(self, text="Go to the start page",
-                           command=lambda: controller.show_frame("pa"))
-        button.pack()
+                           command=lambda: controller.show_frame("StartPage"))
+        button.pack(side = "bottom", fill="x", pady=10)
+
+        self.label = tk.Label(self, text="Cree las tablas de los nodos secundarios", font = ("Arial Black",10,"bold"))
+        self.label.pack(side="top", fill="x", pady=10)
+        
+        #crear un boton para crear la tabla
+        btnCrearTabla = tk.Button(self, text="Crear tabla", width=20, bg="light sky blue", font=("Arial Black", 10, "bold"),
+                            command=lambda: crearTabla()) 
+
+        btnCrearTabla.pack()
+        btnCrearTabla.configure(background="Gainsboro")
+                        
+                                  
+        self.label = tk.Label(self, text="Ingrese el nombre de la tabla", font = ("Arial Black",10,"bold"))
+        self.label.pack(side="top", fill="x", pady=10)
+        #crear un entry para ingresar el nombre de la tabla
+        self.entry = tk.Entry(self)
+        self.entry.pack(side = "top", fill="x", pady=10)
+        
+        self.label = tk.Label(self, text="Ingrese las columnas", font = ("Arial Black",10,"bold"))     
+        self.label.pack(side="top", fill="x", pady=10)
+        
+        #hacer un entry para ingresar la cantidad de columnas
+        self.entry = tk.Entry(self)
+        self.entry.pack(side = "top", fill="x", pady=10)
+        
+        self.lista = self.controller.listanodos
+        self.checklist = tk.Listbox(self, selectmode=tk.MULTIPLE)
+        self.checklist.pack(side=tk.LEFT, fill=tk.BOTH, pady = 10, padx = 10)
+        self.checklist.delete(0, tk.END)
+        for item in self.lista:
+            self.checklist.insert(tk.END, item)
+        def actualizar():
+            self.lista = self.controller.listanodos
+            self.checklist.delete(0, tk.END)
+            for item in self.lista:
+                self.checklist.insert(tk.END, item)
+        
+        #boton para actualizar la lista de nodos
+        btnActualizar = tk.Button(self, text="Actualizar", width=20, bg="light sky blue", font=("Arial Black", 10, "bold"),
+                            command=lambda: actualizar())
+        btnActualizar.pack()
+        btnActualizar.configure(background="Gainsboro")    
+#crear boton de ingresarTodosDatos
+        btnIngresarTodosDatos = tk.Button(self, text="Ingresar todos los datos", width=20, bg="light sky blue", font=("Arial Black", 10, "bold"),
+                            command=lambda: ingresarTodosDatos())       
+        btnIngresarTodosDatos.pack()    
+        btnIngresarTodosDatos.configure(background="Gainsboro")
+        
 
 
 
