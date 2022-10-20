@@ -1,3 +1,8 @@
+from ast import NodeVisitor
+import tkinter as tk                # python 3
+from tkinter import font as tkfont  # python 3
+from tkinter import *
+
 class PageTwo(tk.Frame):
 
     def __init__(self, parent, controller):

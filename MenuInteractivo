@@ -24,7 +24,7 @@ class SampleApp(tk.Tk):
         container.grid_rowconfigure(0, weight=1)
         container.grid_columnconfigure(0, weight=1)
 
-        self.listanodos = []
+        self.listanodos = [["Nodo 1", "localhost", "postgres", "1234", "5432"]]
 
 
         self.frames = {}
@@ -292,11 +292,106 @@ class PageTwo(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         self.controller = controller
-        label = tk.Label(self, text="This is page 2", font=controller.title_font)
+        label = tk.Label(self, text="Segmentacion Vertical", font=controller.title_font)
         label.pack(side="top", fill="x", pady=10)
         button = tk.Button(self, text="Go to the start page",
                            command=lambda: controller.show_frame("StartPage"))
-        button.pack()
+        button.pack(side = "bottom")
+
+        #crear un label que diga "Seleccione el nodo" 
+        self.label = tk.Label(self, text="Seleccione el nodo", font = ("Arial Black",10,"bold"))
+        self.label.pack(side="top", fill="x", pady=10)
+
+        #crear una checklist con los datos de una lista cada vez que abra la ventana
+        self.lista = self.controller.listanodos
+        self.checklist = tk.Listbox(self, selectmode=tk.MULTIPLE)
+        self.checklist.pack(side=tk.LEFT, fill=tk.BOTH, pady = 10, padx = 10)
+        self.checklist.delete(0, tk.END)
+        for item in self.lista:
+            self.checklist.insert(tk.END, item)
+
+        
+        def aceptar():
+            seleccionados = self.checklist.curselection()
+            seleccionados = [self.lista[int(i)] for i in seleccionados]
+            print(seleccionados)
+            tk.messagebox.showinfo("Mensaje", "Los valores seleccionados son: " + str(seleccionados))
+
+        #actualizar la lista de nodos
+        def actualizar():
+            self.lista = self.controller.listanodos
+            self.checklist.delete(0, tk.END)
+            for item in self.lista:
+                self.checklist.insert(tk.END, item)
+        
+        #boton para actualizar la lista de nodos
+        btnActualizar = tk.Button(self, text="Actualizar", width=20, bg="light sky blue", font=("Arial Black", 10, "bold"),
+                            command=lambda: actualizar())
+        btnActualizar.pack()
+        btnActualizar.configure(background="Gainsboro")
+
+        
+
+        #actualizar la lista de nodos con un button
+        self.btnActualizar = tk.Button(self, text="Actualizar", width=20, bg="light sky blue", font=("Arial Black", 10, "bold"),
+                            command=lambda: self.actuactualizarPage())
+        self.btnActualizar.pack(side = "bottom", pady = 10, padx = 10)
+        self.btnActualizar.configure(background="Gainsboro")
+
+        
+
+        
+        
+        #actualizar la lista de nodos
+        
+
+
+
+        #crear un boton que actuliaze la lista de nodos
+        
+
+
+
+        # crear un boton que diga "Aceptar"
+        button = tk.Button(self, text="Aceptar",
+                           command= aceptar)
+        button.pack(side = "bottom")
+
+        #crear un label que diga "Crear table "
+        self.label = tk.Label(self, text="Crear table ", font = ("Arial Black",10,"bold"))
+        self.label.pack(side="top", fill="x", pady=10)
+        #crear un radiobutton que diga  "Tabla local" y "Tabla global"
+        self.radio = tk.IntVar()
+        self.radio.set(1)
+        self.r1 = tk.Radiobutton(self, text="Tabla local", variable=self.radio, value=1)
+        self.r1.pack(side = "top", fill="x", pady=10)
+        self.r2 = tk.Radiobutton(self, text="Tabla Remota", variable=self.radio, value=2)
+        self.r2.pack(side = "top", fill="x", pady=10)
+
+        #crear un label que diga "Nombre de la tabla"
+        self.label = tk.Label(self, text="Nombre de la tabla", font = ("Arial Black",10,"bold"))
+        self.label.pack(side="top", fill="x", pady=10)
+        #crear un entry para ingresar el nombre de la tabla
+        self.entry = tk.Entry(self)
+        self.entry.pack(side = "top", fill="x", pady=10)
+
+        #crear un label que diga "Ingrese los atributos"
+        self.label = tk.Label(self, text="Ingrese las columnas", font = ("Arial Black",10,"bold"))     
+        self.label.pack(side="top", fill="x", pady=10)
+        
+        #hacer un entry para ingresar la cantidad de columnas
+        self.entry = tk.Entry(self)
+        self.entry.pack(side = "top", fill="x", pady=10)
+
+        #crear una funcion que cuando el buttonAgregarC es presionado, se creee y muestre una pagina nueva
+        def agregarColumnas():
+            print("agregar columnas")
+            controller.show_frame("AgregarColumnas")
+
+        #crear un button que diga "Agregar columnas"
+        buttonAgregarC = tk.Button(self, text="Agregar columnas",
+                           command= agregarColumnas)
+        buttonAgregarC.pack(side = "bottom")
 
 class TerceraPagina(tk.Frame):
 
