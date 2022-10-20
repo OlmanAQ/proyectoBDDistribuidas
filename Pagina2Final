@@ -1,0 +1,163 @@
+class PageTwo(tk.Frame):
+    #constructor principal
+    def __init__(self, parent, controller):
+        tk.Frame.__init__(self, parent)
+        self.controller = controller
+        label = tk.Label(self, text="Segmentacion Vertical", font=controller.title_font)
+        label.pack(side="top", fill="x", pady=10)
+        button = tk.Button(self, text="Regresar al menu", 
+                           command=lambda: controller.show_frame("StartPage"))
+        button.pack(side = "bottom")
+
+        #crear un label que diga "Seleccione el nodo" 
+        self.label = tk.Label(self, text="Seleccione el nodo", font = ("Arial Black",10,"bold"))
+        self.label.pack(side="top", fill="x", pady=10)
+
+        #crear una checklist con los datos de una lista cada vez que abra la ventana
+        #se llena el checklist con los nodos que se encuentran en la lista
+        self.lista = self.controller.listanodos
+        self.checklist = tk.Listbox(self, selectmode=tk.MULTIPLE)
+        self.checklist.pack(side=tk.LEFT, fill=tk.BOTH, pady = 10, padx = 10)
+        self.checklist.delete(0, tk.END)
+        for item in self.lista:
+            self.checklist.insert(tk.END, item)
+
+        
+
+        #actualizar la lista de nodos
+        def actualizar():
+            self.lista = self.controller.listanodos
+            self.checklist.delete(0, tk.END)
+            for item in self.lista:
+                self.checklist.insert(tk.END, item)
+        
+        #boton para actualizar la lista de nodos
+        btnActualizar = tk.Button(self, text="Actualizar", width=20, bg="light sky blue", font=("Arial Black", 10, "bold"),
+                            command=lambda: actualizar())
+        btnActualizar.pack()
+        btnActualizar.configure(background="Gainsboro")
+
+        #crear un boton para crear tabla
+
+        #crear un label que diga "Nombre de la tabla"
+        self.label = tk.Label(self, text="Nombre de la tabla", font = ("Arial Black",10,"bold"))
+        self.label.pack(side="top", fill="x", pady=10)
+        #crear un entry para ingresar el nombre de la tabla
+        self.entry1 = tk.Entry(self)
+        self.entry1.pack(side = "top", fill="x", pady=10)
+
+        #crear un radiobutton para seleccionar el tipo de tabla (Mestro, Secundario)
+        self.var = tk.IntVar()
+        self.var.set(1)
+        self.r1 = tk.Radiobutton(self, text="Maestro", variable=self.var, value=1)
+        self.r1.pack(side = "top", fill="x", pady=10)
+        self.r2 = tk.Radiobutton(self, text="Secundario", variable=self.var, value=2)
+        self.r2.pack(side = "top", fill="x", pady=10)
+
+
+
+        
+
+
+       
+
+        #crear la funcion que muestre el nombre de la tabla con messagebox
+        def mostrarTabla():
+            tabla = self.entry1.get()
+            tk.messagebox.showinfo("Tabla", tabla)
+
+        #crear una funcion que haga un cuerry por cada nodo seleccionado
+        def crearTabla():
+                tabla = self.entry1.get()
+                for i in self.checklist.curselection():
+                    conn = psycopg2.connect(host=self.controller.listanodos[i][1], database=self.controller.listanodos[i][2], user=self.controller.listanodos[i][3],
+                                password=self.controller.listanodos[i][4], port=self.controller.listanodos[i][5])
+                    cur = conn.cursor()
+                    cur.execute("CREATE  TABLE "+tabla+" (id int, nombre varchar(50));")
+                    conn.commit()
+                    conn.close()
+
+                #se crea una lista que guarda la coneccion
+                self.listaSeleccion = []
+                for i in self.checklist.curselection():
+                    self.listaSeleccion.append(self.checklist.get(i))
+                return self.listaSeleccion   
+                tk.messagebox.showinfo("Tabla", "Tabla creada exitosamente")
+
+
+        #crear un boton para crear la tabla
+        btnCrearTabla = tk.Button(self, text="Crear tabla", width=20, bg="light sky blue", font=("Arial Black", 10, "bold"),
+                            command=lambda: crearTabla())
+        btnCrearTabla.pack()
+        btnCrearTabla.configure(background="Gainsboro")
+
+        #crear un boton llamado crear columna y lleve a la PaginaColumnas
+        btnCrearColumna = tk.Button(self, text="Crear columna", width=20, bg="light sky blue", font=("Arial Black", 10, "bold"),
+                            command=lambda: controller.show_frame("PaginaColumnas"))
+        btnCrearColumna.pack()
+
+       
+
+ #fin de pagina 2       
+
+class PaginaColumnas(tk.Frame):
+    #constructor principal
+    def __init__(self, parent, controller):
+        tk.Frame.__init__(self, parent)
+        self.controller = controller
+        label = tk.Label(self, text="Creacion de Columnas", font=controller.title_font)
+        label.pack(side="top", fill="x", pady=10)
+        button = tk.Button(self, text="Go to the start page",
+                           command=lambda: controller.show_frame("PageTwo"))
+        button.pack()
+
+
+        #crear un label que diga "Ingrese el nombre de la tabla en la que desea crear la columna"
+        self.label = tk.Label(self, text="Ingrese el nombre de la tabla en la que desea crear la columna", font = ("Arial Black",10,"bold"))
+        self.label.pack(side="top", fill="x", pady=10)
+        #crear un entry para ingresar el nombre de la tabla
+        self.entry1 = tk.Entry(self)
+        self.entry1.pack(side = "top", fill="x", pady=10)
+
+
+        #crear un label que diga "Nombre de la Columna"
+        self.label = tk.Label(self, text="Nombre de la Columna", font = ("Arial Black",10,"bold"))
+        self.label.pack(side="top", fill="x", pady=10)
+        #crear un entry para ingresar el nombre de la columna
+        self.entry2 = tk.Entry(self)
+        self.entry2.pack(side = "top", fill="x", pady=10)
+
+        #crear un label que diga "Tipo de dato"
+        self.label = tk.Label(self, text="Tipo de dato", font = ("Arial Black",10,"bold"))
+        self.label.pack(side="top", fill="x", pady=10)
+        #crear un entry para ingresar el tipo de dato
+        self.entry3 = tk.Entry(self)
+        self.entry3.pack(side = "top", fill="x", pady=10)
+    
+       #crear un boton para crear la columna en la tabla ingresada
+        btnCrearColumna = tk.Button(self, text="Crear columna", width=20, bg="light sky blue", font=("Arial Black", 10, "bold"),
+                            command=lambda: crearColumna())
+        btnCrearColumna.pack()
+        btnCrearColumna.configure(background="Gainsboro")
+
+       #crear un querry e insertar la columna en la tabla ingresada
+        def crearColumna():
+                tabla = self.entry1.get()
+                columna = self.entry2.get()
+                tipo = self.entry3.get()
+                #se crea la coneccion del nodo preseleccionado
+                conn = psycopg2.connect(host= self.controller.listanodos[0][1], database=self.controller.listanodos[0][2], user=self.controller.listanodos[0][3],
+                                password=self.controller.listanodos[0][4], port=self.controller.listanodos[0][5])
+                cur = conn.cursor()
+                conn.commit()
+                conn.close()
+                #se envia una alerta si se logro crear la columna
+                tk.messagebox.showinfo("Tabla", "Tabla creada exitosamente")
+
+        
+
+             
+
+
+
+ #fin de pagina 2       
