@@ -1,14 +1,3 @@
-#agreagar todas las paginas al container
-     for F in (StartPage, PageOne, PageTwo, TerceraPagina, PageNodos,PaginaColumnas):
-            page_name = F.__name__
-            frame = F(parent=container, controller=self)
-            self.frames[page_name] = frame
-
-            # put all of the pages in the same location;
-            # the one on the top of the stacking order
-            # will be the one that is visible.
-            frame.grid(row=0, column=0, sticky="nsew")
-
 
 
 
