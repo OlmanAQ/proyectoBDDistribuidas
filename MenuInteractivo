@@ -27,6 +27,7 @@ class SampleApp(tk.Tk):
         #crear una lista nodos
         self.listanodos = []
         self.nodoMaestro = []
+        self.listaColumnas = [['id', 'int'], ['nombre', 'varchar(30)'], ['apellido', 'varchar(30)'], ['edad', 'int']]
 
 
 
@@ -304,6 +305,8 @@ class PageTwo(tk.Frame):
         self.r2 = tk.Radiobutton(self, text="Secundario", variable=self.var, value=2)
         self.r2.pack(side = "top", fill="x", pady=10)
 
+        
+
 
 
         
@@ -319,21 +322,90 @@ class PageTwo(tk.Frame):
         #crear una funcion que haga un cuerry por cada nodo seleccionado
         #crear una funcion que haga un cuerry por cada nodo seleccionado
         def crearTabla():
+
+            #si self.var.get() == 1:
+            #crear tabla maestro
+            #else:
+            #crear tabla secundario
+            self.listaSeleccion = []
+
+            if (self.var.get() == 1):
                 tabla = self.entry1.get()
+                #verificar si hay mas nodo seleccionado
+                if (len(self.checklist.curselection()) > 1 and self.controller.listanodos != []):
+                    tk.messagebox.showinfo("Tabla Maestro", "No se puede crear una tabla maestro con mas de un nodo")
+                else:
+                    #crear tabla maestro
+                    nodo = self.checklist.get(self.checklist.curselection())
+                    
+                    for i in self.checklist.curselection():
+                        conn = psycopg2.connect(host=self.controller.listanodos[i][1], database=self.controller.listanodos[i][2], user=self.controller.listanodos[i][3],
+                                    password=self.controller.listanodos[i][4], port=self.controller.listanodos[i][5])
+                        cur = conn.cursor()
+                        cur.execute("CREATE  TABLE "+tabla+" (id int);")
+                        conn.commit()
+                        conn.close()
+                        self.controller.nodoMaestro = nodo
+                        print(self.controller.nodoMaestro)
+
+
+                    tk.messagebox.showinfo("Tabla Maestro", "Se ha creado la tabla maestro en el nodo " + nodo[0])
+                    for i in self.checklist.curselection():
+                        self.listaSeleccion.append(self.checklist.get(i))
+                    return self.listaSeleccion  
+                    
+        
+
+            else:
+                tabla = self.entry1.get()
+                nodo = self.checklist.get(self.checklist.curselection())
+
+
+                    
                 for i in self.checklist.curselection():
                     conn = psycopg2.connect(host=self.controller.listanodos[i][1], database=self.controller.listanodos[i][2], user=self.controller.listanodos[i][3],
                                 password=self.controller.listanodos[i][4], port=self.controller.listanodos[i][5])
                     cur = conn.cursor()
-                    cur.execute("CREATE  TABLE "+tabla+" (id int, nombre varchar(50));")
+                    cur.execute("CREATE  TABLE "+tabla+" (id int);")
+                    conn.commit()
+                    
+                    cur = conn.cursor()
+                    cur.execute("create extension postgres_fdw;")
+                    #con lista nodoMaestro crear el server
+                    #con lista nodoMaestro crear el user mapping
+                    # Ejemplo: nodoMaestro = ('nodo1', 'localhost', 'test', 'usr_remote', '12345', '1001', 'pgsql')
+                    nodoM = self.controller.nodoMaestro
+                    cur.execute("CREATE SERVER nodo_central_postgres_fdw FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host '"+nodoM[1]+"', dbname '"+nodoM[2]+"', port '"+nodoM[5]+"');")
+                    cur.execute("CREATE USER MAPPING FOR postgres SERVER nodo_central_postgres_fdw OPTIONS (user '"+nodoM[3]+"', password '"+nodoM[4]+"');")
                     conn.commit()
                     conn.close()
+                    tk.messagebox.showinfo("Tabla Secundario", "Se ha creado la tabla secundario en el nodo " + nodo[0])
 
-                #se crea una lista que guarda la coneccion
-                self.listaSeleccion = []
-                for i in self.checklist.curselection():
-                    self.listaSeleccion.append(self.checklist.get(i))
-                return self.listaSeleccion   
-                tk.messagebox.showinfo("Tabla", "Tabla creada exitosamente")
+                    for i in self.checklist.curselection():
+                        self.listaSeleccion.append(self.checklist.get(i))
+                    return self.listaSeleccion
+                
+       
+        
+        def crearExtension(self):
+            #crear la extension en los nodos secundarios
+            tabla = self.entry1.get()
+            nodo = self.checklist.get(self.checklist.curselection())
+
+            for i in self.checklist.curselection():
+                conn = psycopg2.connect(host=self.controller.listanodos[i][1], database=self.controller.listanodos[i][2], user=self.controller.listanodos[i][3],
+                            password=self.controller.listanodos[i][4], port=self.controller.listanodos[i][5])
+                cur = conn.cursor()
+                cur.execute("create extension postgres_fdw;")
+                #con lista nodoMaestro crear el server
+                #con lista nodoMaestro crear el user mapping
+                # Ejemplo: nodoMaestro = ('nodo1', 'localhost', 'test', 'usr_remote', '12345', '1001', 'pgsql')
+                nodoM = self.controller.nodoMaestro
+                cur.execute("CREATE SERVER nodo_central_postgres_fdw FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host '"+nodoM[1]+"', dbname '"+nodoM[2]+"', port '"+nodoM[5]+"');")
+                cur.execute("CREATE USER MAPPING FOR postgres SERVER nodo_central_postgres_fdw OPTIONS (user '"+nodoM[3]+"', password '"+nodoM[4]+"');")
+                conn.commit()
+                conn.close()
+                tk.messagebox.showinfo("Extension", "Se ha creado la extension en el nodo " + nodo[0])
 
 
         #crear un boton para crear la tabla
@@ -346,6 +418,39 @@ class PageTwo(tk.Frame):
         btnCrearColumna = tk.Button(self, text="Crear columna", width=20, bg="light sky blue", font=("Arial Black", 10, "bold"),
                             command=lambda: controller.show_frame("PaginaColumnas"))
         btnCrearColumna.pack()
+
+        #crear tabla con columnas de listaColumnas Ejemplo: listaColumnas = [['id', 'int'], ['nombre', 'varchar(30)'], ['apellido', 'varchar(30)'], ['edad', 'int']]
+        def crearTabla1():
+            tabla = self.entry1.get()
+            nodo = self.checklist.get(self.checklist.curselection())
+            listaC = self.controller.listaColumnas
+            print(listaC)   
+
+            for i in self.checklist.curselection():
+                conn = psycopg2.connect(host=self.controller.listanodos[i][1], database=self.controller.listanodos[i][2], user=self.controller.listanodos[i][3],
+                            password=self.controller.listanodos[i][4], port=self.controller.listanodos[i][5])
+                cur = conn.cursor()
+                #cur.execute("CREATE  TABLE "+tabla+" (id int);")
+
+                #listaColumnas = [['id', 'int'], ['nombre', 'varchar(30)'], ['apellido', 'varchar(30)'], ['edad', 'int']]
+
+                listaC = self.controller.listaColumnas
+                print(listaC)
+                listaC = str(listaC)
+                listaC = listaC.replace("[", "")
+                listaC = listaC.replace("]", "")
+                listaC = listaC.replace("',", "")
+                listaC = listaC.replace("'", "")
+                listaC = listaC.replace("',", "")
+                listaC = listaC.replace(" ", "")
+                print(listaC)
+                cur.execute("CREATE  TABLE "+tabla+" ("+listaC+");")
+
+                
+                conn.commit()
+                conn.close()
+                tk.messagebox.showinfo("Tabla Secundario", "Se ha creado la tabla secundario en el nodo " + nodo[0])
+
 
        
 
