@@ -504,8 +504,12 @@ class PaginaColumnas(tk.Frame):
                 #se crea la coneccion del nodo preseleccionado
                 conn = psycopg2.connect(host= self.controller.listanodos[0][1], database=self.controller.listanodos[0][2], user=self.controller.listanodos[0][3],
                                 password=self.controller.listanodos[0][4], port=self.controller.listanodos[0][5])
+
                 cur = conn.cursor()
+                #se crea la columna en la tabla ingresada
+                cur.execute("ALTER TABLE "+tabla+" ADD COLUMN "+columna+" "+tipo+";")
                 conn.commit()
+
                 conn.close()
                 #se envia una alerta si se logro crear la columna
                 tk.messagebox.showinfo("Tabla", "Tabla creada exitosamente")
