@@ -5,7 +5,6 @@ from tkinter import *
 from tkinter import messagebox
 import psycopg2
 
-import pyodbc 
 
 
 class SampleApp(tk.Tk):
@@ -305,6 +304,8 @@ class PageTwo(tk.Frame):
         self.r2 = tk.Radiobutton(self, text="Secundario", variable=self.var, value=2)
         self.r2.pack(side = "top", fill="x", pady=10)
 
+
+
         
 
 
@@ -319,7 +320,7 @@ class PageTwo(tk.Frame):
             tabla = self.entry1.get()
             tk.messagebox.showinfo("Tabla", tabla)
 
-        #crear una funcion que haga un cuerry por cada nodo seleccionado
+    
         #crear una funcion que haga un cuerry por cada nodo seleccionado
         def crearTabla():
 
@@ -489,6 +490,17 @@ class PaginaColumnas(tk.Frame):
         #crear un entry para ingresar el tipo de dato
         self.entry3 = tk.Entry(self)
         self.entry3.pack(side = "top", fill="x", pady=10)
+
+        #crear un label que diga, seleccionar como llave primaria
+        self.label = tk.Label(self, text="Seleccionar como llave primaria", font = ("Arial Black",10,"bold"))
+        self.label.pack(side="top", fill="x", pady=10)
+        
+        #crear un radio button con 2 opciones: "si" y "no"
+        self.radio = tk.Radiobutton(self, text="Si", value=1)
+        self.radio.pack(side = "top", fill="x", pady=10)
+        self.radio = tk.Radiobutton(self, text="No", value=2)
+        self.radio.pack(side = "top", fill="x", pady=10)
+
     
        #crear un boton para crear la columna en la tabla ingresada
         btnCrearColumna = tk.Button(self, text="Crear columna", width=20, bg="light sky blue", font=("Arial Black", 10, "bold"),
@@ -506,11 +518,21 @@ class PaginaColumnas(tk.Frame):
                                 password=self.controller.listanodos[0][4], port=self.controller.listanodos[0][5])
 
                 cur = conn.cursor()
-                #se crea la columna en la tabla ingresada
-                cur.execute("ALTER TABLE "+tabla+" ADD COLUMN "+columna+" "+tipo+";")
-                conn.commit()
+                #preguntar si el radio button esta seleccionado en si o no
+            
+                if self.radio == 1:
+                    cur.execute("ALTER TABLE "+tabla+" ADD COLUMN "+columna+" "+tipo+";")
+                    #cur.execute("ALTER TABLE "+tabla+" ADD PRIMARY KEY ("+columna+");")
+                    cur.execute("ALTER TABLE "+tabla+" ADD CONSTRAINT pk PRIMARY KEY ("+columna+");")
 
+            
+
+                else:
+                    cur.execute("ALTER TABLE "+tabla+" ADD COLUMN "+columna+" "+tipo+";")
+
+                conn.commit()
                 conn.close()
+
                 #se envia una alerta si se logro crear la columna
                 tk.messagebox.showinfo("Tabla", "Tabla creada exitosamente")
 
