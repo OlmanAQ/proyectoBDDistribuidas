@@ -1,25 +1,37 @@
+from ast import NodeVisitor
 import tkinter as tk                # python 3
-from tkinter import font  as tkfont # python 3
-#import Tkinter as tk     # python 2
-#import tkFont as tkfont  # python 2
+from tkinter import font as tkfont  # python 3
+from tkinter import *
+from tkinter import messagebox
+import psycopg2
+
+
 
 class SampleApp(tk.Tk):
 
     def __init__(self, *args, **kwargs):
         tk.Tk.__init__(self, *args, **kwargs)
 
-        self.title_font = tkfont.Font(family='Helvetica', size=18, weight="bold", slant="italic")
+        self.title_font = tkfont.Font(
+            family='Helvetica', size=18, weight="bold", slant="italic")
 
-        # the container is where we'll stack a bunch of frames
-        # on top of each other, then the one we want visible
-        # will be raised above the others
+        # el contenedor es donde apilaremos un montón de marcos
+        # uno encima del otro, luego el que queremos visible
+        # se elevará por encima de los demás
         container = tk.Frame(self)
         container.pack(side="top", fill="both", expand=True)
         container.grid_rowconfigure(0, weight=1)
         container.grid_columnconfigure(0, weight=1)
 
+        #crear una lista nodos
+        self.listanodos = []
+        self.nodoMaestro = []
+        self.listaColumnas = [['id', 'int'], ['nombre', 'varchar(30)'], ['apellido', 'varchar(30)'], ['edad', 'int']]
+
+
+
         self.frames = {}
-        for F in (StartPage, PageOne, PageTwo , TerceraPagina):
+        for F in (StartPage, PageOne, PageTwo, TerceraPagina, PageNodos,PaginaColumnas):
             page_name = F.__name__
             frame = F(parent=container, controller=self)
             self.frames[page_name] = frame
@@ -31,72 +43,563 @@ class SampleApp(tk.Tk):
 
         self.show_frame("StartPage")
 
+
+#crear una funcion que muestre la pagina que se le pase como parametro
     def show_frame(self, page_name):
-        '''Show a frame for the given page name'''
+        '''Mostrar un frame para el nombre de página dado y centrar la ventana'''
         frame = self.frames[page_name]
         frame.tkraise()
+    
+    
 
 
+#menu de inicio
 class StartPage(tk.Frame):
 
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         self.controller = controller
 
-        btnNodo = tk.Button(self,text="Crear Node",width=20, bg= "light sky blue", font=("Arial Black",10,"bold"),
-                            command=lambda: controller.show_frame("PageOne"))
-        btnNodo.grid(column=3,row=2,padx=70,pady=50)
-        btnNodo.configure(background = "Gainsboro")
+        btnNodo = tk.Button(self, text="Nodos", width=20, bg="light sky blue", font=("Arial Black", 10, "bold"),
+                            command=lambda: controller.show_frame("PageNodos"))
+        btnNodo.grid(column=3, row=2, padx=70, pady=50)
+        btnNodo.configure(background="Gainsboro")
 
-
-        btnNodo = tk.Button(self,text="Segmentacion Vertical",width=20, bg= "light sky blue", font=("Arial Black",10,"bold"),
+        btnNodo = tk.Button(self, text="Segmentacion Vertical", width=20, bg="light sky blue", font=("Arial Black", 10, "bold"),
                                 command=lambda: controller.show_frame("PageTwo"))
-        btnNodo.grid(column=3,row=3,padx=70,pady=50)
-        btnNodo.configure(background = "Gainsboro")
+        btnNodo.grid(column=3, row=3, padx=70, pady=50)
+        btnNodo.configure(background="Gainsboro")
 
-
-        btnNodo3 = tk.Button(self,text="Segmentacion Horizontal",width=20, bg= "light sky blue", font=("Arial Black",10,"bold"),
+        btnNodo3 = tk.Button(self, text="Segmentacion Horizontal", width=20, bg="light sky blue", font=("Arial Black", 10, "bold"),
                                 command=lambda: controller.show_frame("TerceraPagina"))
-        btnNodo3.grid(column=3,row=4,padx=70,pady=50)
-        btnNodo3.configure(background = "Gainsboro")
+        btnNodo3.grid(column=3, row=4, padx=70, pady=50)
+        btnNodo3.configure(background="Gainsboro")
+
+
+
+"""
+Pagina donde se muestra la lista de nodos creados
+"""
+class PageNodos(tk.Frame):
+
+    #cada vez que se recarga
+    def __init__(self, parent, controller):
+        tk.Frame.__init__(self, parent)
+        self.controller = controller
+
+        label = tk.Label(self, text="Nodos", font=controller.title_font)
+        label.pack(side="top", fill="x", pady=10)
+
+        #enviar pagina de crear nodos y se cierra la pagina de nodos
+        button = tk.Button(self, text="Crear Nodo", width=20, bg="light sky blue", font=("Arial Black", 10, "bold"),
+                            command=lambda: controller.show_frame("PageOne"))
+        button.pack()
+        button.configure(background="Gainsboro")
+
+
+        btnNodo = tk.Button(self, text="Salir", width=20, bg="light sky blue", font=("Arial Black", 10, "bold"),
+                            command=lambda: controller.show_frame("StartPage"))
+        btnNodo.pack()
+        btnNodo.configure(background="Gainsboro")
+
+        # se actualiza la lista de nodos cada vez que se ingresa a la pagina en el
+        self.listbox = Listbox(self, width=50, height=10)
+        self.listbox.pack()
+        self.listbox.delete(0, END)
+        for item in self.controller.listanodos:
+            # se le da un nombtre a cada item de la lista
+            self.listbox.insert(END, item)
+           
+
 
         
-       
+        # boton para actualiza la lista de nodos cada vez que se ingresa a la pagina
+        btnNodo = tk.Button(self, text="Actualizar", width=20, bg="light sky blue", font=("Arial Black", 10, "bold"),
+                            command=lambda: self.actualizar())
+        btnNodo.pack()
+        btnNodo.configure(background="Gainsboro")
+        
+        
+        # se crea un boton para eliminar un nodo de la lista
+        btnNodo = tk.Button(self, text="Eliminar Nodo", width=20, bg="light sky blue", font=("Arial Black", 10, "bold"),
+                            command=lambda: self.eliminarNodo())
+        btnNodo.pack()
+        btnNodo.configure(background="Gainsboro")
+
+    def eliminarNodo(self):
+        # se elimina el nodo seleccionado de la lista 
+        self.listbox.delete(ANCHOR)
+        self.controller.listanodos.clear()
+        for item in self.listbox.get(0, END):
+            # actualiza el nombre la tupla item
+            aux= list(item)
+            aux[0] = "Nodo "+str(len(self.controller.listanodos) + 1)
+            item = tuple(aux)
+            self.controller.listanodos.append(item)
+        self.listbox.delete(0, END)
+        self.actualizar()
+            
+
+
+    def actualizar(self):
+        # se actualiza la lista de nodos cada vez que se ingresa a la pagina
+        self.listbox.delete(0, END)
+        for item in self.controller.listanodos:
+            # se muestra el nombre del item Ejemplo: nodo 1
+            self.listbox.insert(END, item)
+            listaNodosG = self.controller.listanodos
+        
+ 
 
 
 class PageOne(tk.Frame):
+    
 
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         self.controller = controller
-        label = tk.Label(self, text="This is page 1", font=controller.title_font)
+        #titulo el nombre del item
+        label = tk.Label(self, text="Conectar nodo", font=controller.title_font)
         label.pack(side="top", fill="x", pady=10)
-        button = tk.Button(self, text="Go to the start page",
-                           command=lambda: controller.show_frame("StartPage"))
+
+        #boton para regresar a la pagina de nodos
+        button = tk.Button(self, text="Ir a la pagina de inicio",
+                            command=lambda: controller.show_frame("PageNodos"))
+
         button.pack()
 
+        #titulo host
+        label = tk.Label(self, text="Host", font=controller.title_font)
+        label.pack(side="top", fill="x", pady=10)
 
+        #caja de texto para ingresar el host
+        self.host = tk.Entry(self)
+        self.host.pack()
+
+        #titulo database
+        label = tk.Label(self, text="Database", font=controller.title_font)
+        label.pack(side="top", fill="x", pady=10)
+
+        #caja de texto para ingresar el database
+        self.database = tk.Entry(self)
+        self.database.pack()
+
+        #titulo user
+        label = tk.Label(self, text="User", font=controller.title_font)
+        label.pack(side="top", fill="x", pady=10)
+
+        #caja de texto para ingresar el user
+        self.user = tk.Entry(self)
+        self.user.pack()
+
+        #titulo password
+        label = tk.Label(self, text="Password", font=controller.title_font)
+        label.pack(side="top", fill="x", pady=10)
+
+        #caja de texto para ingresar el password
+        self.password = tk.Entry(self)
+        self.password.pack()
+
+        #titulo port
+        label = tk.Label(self, text="Port", font=controller.title_font)
+        label.pack(side="top", fill="x", pady=10)
+
+        #caja de texto para ingresar el port
+        self.port = tk.Entry(self)
+        self.port.pack()
+
+        # opcion para conexion postgresql o sqlserver
+        self.var = IntVar()
+        self.var.set(1)
+        self.r1 = Radiobutton(self, text="PostgreSQL", variable=self.var, value=1)
+        self.r1.pack()
+        self.r2 = Radiobutton(self, text="SQL Server", variable=self.var, value=2)
+        self.r2.pack()
+
+        """Boton para guardar los datos de la conexion y le envia mensaje al usuario"""
+        btnNodo = tk.Button(self, text="Guardar", width=20, bg="light sky blue", font=("Arial Black", 10, "bold"),
+                            command=lambda: self.guardar())
+        btnNodo.pack()
+        btnNodo.configure(background="Gainsboro")
+
+
+
+    def guardar(self):
+        if self.var.get() == 1:
+            try:
+                conn = psycopg2.connect(host=self.host.get(), database=self.database.get(), user=self.user.get(),
+                                        password=self.password.get(), port=self.port.get())
+                nodo= ["Nodo "+str(len(self.controller.listanodos)+1), self.host.get(), self.database.get(), self.user.get(), self.password.get(), self.port.get(), "pgsql"]
+                self.controller.listanodos.append(nodo)
+                tk.Message(self, text="Conexion exitosa PG", width=200).pack()
+            except:
+                tk.Message(self, text="Conexion fallida PG", width=200).pack()
+        else:
+            try:
+                # conexion sqlserver
+                conn = pyodbc.connect('DRIVER={SQL Server};SERVER=' + self.host.get() + ';DATABASE=' + self.database.get() + ';UID=' + self.user.get() + ';PWD=' + self.password.get())
+                
+                nodo = ["Nodo " + str(len(self.controller.listanodos) + 1), self.host.get(), self.database.get(), self.user.get(), self.password.get(), self.port.get(), "sqlserver"]
+                # comprobar si existe el nodo en listanodos
+                conn.close()
+            except:
+                tk.Message(self, text="Conexion fallida SQL", width=200).pack()
+
+
+
+#inicio pagina2
 class PageTwo(tk.Frame):
-
+    #constructor principal
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         self.controller = controller
-        label = tk.Label(self, text="This is page 2", font=controller.title_font)
+        label = tk.Label(self, text="Segmentacion Vertical", font=controller.title_font)
+        label.pack(side="top", fill="x", pady=10)
+        button = tk.Button(self, text="Regresar al menu", 
+                           command=lambda: controller.show_frame("StartPage"))
+        button.pack(side = "bottom")
+
+        #crear un label que diga "Seleccione el nodo" 
+        self.label = tk.Label(self, text="Seleccione el nodo", font = ("Arial Black",10,"bold"))
+        self.label.pack(side="top", fill="x", pady=10)
+
+        #crear una checklist con los datos de una lista cada vez que abra la ventana
+        #se llena el checklist con los nodos que se encuentran en la lista
+        self.lista = self.controller.listanodos
+        self.checklist = tk.Listbox(self, selectmode=tk.MULTIPLE)
+        self.checklist.pack(side=tk.LEFT, fill=tk.BOTH, pady = 10, padx = 10)
+        self.checklist.delete(0, tk.END)
+        for item in self.lista:
+            self.checklist.insert(tk.END, item)
+
+        
+
+        #actualizar la lista de nodos
+        def actualizar():
+            self.lista = self.controller.listanodos
+            self.checklist.delete(0, tk.END)
+            for item in self.lista:
+                self.checklist.insert(tk.END, item)
+        
+        #boton para actualizar la lista de nodos
+        btnActualizar = tk.Button(self, text="Actualizar", width=20, bg="light sky blue", font=("Arial Black", 10, "bold"),
+                            command=lambda: actualizar())
+        btnActualizar.pack()
+        btnActualizar.configure(background="Gainsboro")
+
+        #crear un boton para crear tabla
+
+        #crear un label que diga "Nombre de la tabla"
+        self.label = tk.Label(self, text="Nombre de la tabla", font = ("Arial Black",10,"bold"))
+        self.label.pack(side="top", fill="x", pady=10)
+        #crear un entry para ingresar el nombre de la tabla
+        self.entry1 = tk.Entry(self)
+        self.entry1.pack(side = "top", fill="x", pady=10)
+
+        #crear un radiobutton para seleccionar el tipo de tabla (Mestro, Secundario)
+        self.var = tk.IntVar()
+        self.var.set(1)
+        self.r1 = tk.Radiobutton(self, text="Maestro", variable=self.var, value=1)
+        self.r1.pack(side = "top", fill="x", pady=10)
+        self.r2 = tk.Radiobutton(self, text="Secundario", variable=self.var, value=2)
+        self.r2.pack(side = "top", fill="x", pady=10)
+
+
+
+        
+
+
+
+        
+
+
+       
+
+        #crear la funcion que muestre el nombre de la tabla con messagebox
+        def mostrarTabla():
+            tabla = self.entry1.get()
+            tk.messagebox.showinfo("Tabla", tabla)
+
+    
+        #crear una funcion que haga un cuerry por cada nodo seleccionado
+        def crearTabla():
+
+            #si self.var.get() == 1:
+            #crear tabla maestro
+            #else:
+            #crear tabla secundario
+            self.listaSeleccion = []
+
+            if (self.var.get() == 1):
+                tabla = self.entry1.get()
+                #verificar si hay mas nodo seleccionado
+                if (len(self.checklist.curselection()) > 1 and self.controller.listanodos != []):
+                    tk.messagebox.showinfo("Tabla Maestro", "No se puede crear una tabla maestro con mas de un nodo")
+                else:
+                    #crear tabla maestro
+                    nodo = self.checklist.get(self.checklist.curselection())
+                    
+                    for i in self.checklist.curselection():
+                        conn = psycopg2.connect(host=self.controller.listanodos[i][1], database=self.controller.listanodos[i][2], user=self.controller.listanodos[i][3],
+                                    password=self.controller.listanodos[i][4], port=self.controller.listanodos[i][5])
+                        cur = conn.cursor()
+                        cur.execute("CREATE  TABLE "+tabla+" (id int);")
+                        conn.commit()
+                        conn.close()
+                        self.controller.nodoMaestro = nodo
+                        print(self.controller.nodoMaestro)
+
+
+                    tk.messagebox.showinfo("Tabla Maestro", "Se ha creado la tabla maestro en el nodo " + nodo[0])
+                    for i in self.checklist.curselection():
+                        self.listaSeleccion.append(self.checklist.get(i))
+                    return self.listaSeleccion  
+                    
+        
+
+            else:
+                tabla = self.entry1.get()
+                nodo = self.checklist.get(self.checklist.curselection())
+
+
+                    
+                for i in self.checklist.curselection():
+                    conn = psycopg2.connect(host=self.controller.listanodos[i][1], database=self.controller.listanodos[i][2], user=self.controller.listanodos[i][3],
+                                password=self.controller.listanodos[i][4], port=self.controller.listanodos[i][5])
+                    cur = conn.cursor()
+                    cur.execute("CREATE  TABLE "+tabla+" (id int);")
+                    conn.commit()
+                    
+                    cur = conn.cursor()
+                    cur.execute("create extension postgres_fdw;")
+                    #con lista nodoMaestro crear el server
+                    #con lista nodoMaestro crear el user mapping
+                    # Ejemplo: nodoMaestro = ('nodo1', 'localhost', 'test', 'usr_remote', '12345', '1001', 'pgsql')
+                    nodoM = self.controller.nodoMaestro
+                    cur.execute("CREATE SERVER nodo_central_postgres_fdw FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host '"+nodoM[1]+"', dbname '"+nodoM[2]+"', port '"+nodoM[5]+"');")
+                    cur.execute("CREATE USER MAPPING FOR postgres SERVER nodo_central_postgres_fdw OPTIONS (user '"+nodoM[3]+"', password '"+nodoM[4]+"');")
+                    conn.commit()
+                    conn.close()
+                    tk.messagebox.showinfo("Tabla Secundario", "Se ha creado la tabla secundario en el nodo " + nodo[0])
+
+                    for i in self.checklist.curselection():
+                        self.listaSeleccion.append(self.checklist.get(i))
+                    return self.listaSeleccion
+                
+       
+        
+        def crearExtension(self):
+            #crear la extension en los nodos secundarios
+            tabla = self.entry1.get()
+            nodo = self.checklist.get(self.checklist.curselection())
+
+            for i in self.checklist.curselection():
+                conn = psycopg2.connect(host=self.controller.listanodos[i][1], database=self.controller.listanodos[i][2], user=self.controller.listanodos[i][3],
+                            password=self.controller.listanodos[i][4], port=self.controller.listanodos[i][5])
+                cur = conn.cursor()
+                cur.execute("create extension postgres_fdw;")
+                #con lista nodoMaestro crear el server
+                #con lista nodoMaestro crear el user mapping
+                # Ejemplo: nodoMaestro = ('nodo1', 'localhost', 'test', 'usr_remote', '12345', '1001', 'pgsql')
+                nodoM = self.controller.nodoMaestro
+                cur.execute("CREATE SERVER nodo_central_postgres_fdw FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host '"+nodoM[1]+"', dbname '"+nodoM[2]+"', port '"+nodoM[5]+"');")
+                cur.execute("CREATE USER MAPPING FOR postgres SERVER nodo_central_postgres_fdw OPTIONS (user '"+nodoM[3]+"', password '"+nodoM[4]+"');")
+                conn.commit()
+                conn.close()
+                tk.messagebox.showinfo("Extension", "Se ha creado la extension en el nodo " + nodo[0])
+
+
+        #crear un boton para crear la tabla
+        btnCrearTabla = tk.Button(self, text="Crear tabla", width=20, bg="light sky blue", font=("Arial Black", 10, "bold"),
+                            command=lambda: crearTabla())
+        btnCrearTabla.pack()
+        btnCrearTabla.configure(background="Gainsboro")
+
+        #crear un boton llamado crear columna y lleve a la PaginaColumnas
+        btnCrearColumna = tk.Button(self, text="Crear columna", width=20, bg="light sky blue", font=("Arial Black", 10, "bold"),
+                            command=lambda: controller.show_frame("PaginaColumnas"))
+        btnCrearColumna.pack()
+
+        #crear tabla con columnas de listaColumnas Ejemplo: listaColumnas = [['id', 'int'], ['nombre', 'varchar(30)'], ['apellido', 'varchar(30)'], ['edad', 'int']]
+        def crearTabla1():
+            tabla = self.entry1.get()
+            nodo = self.checklist.get(self.checklist.curselection())
+            listaC = self.controller.listaColumnas
+            print(listaC)   
+
+            for i in self.checklist.curselection():
+                conn = psycopg2.connect(host=self.controller.listanodos[i][1], database=self.controller.listanodos[i][2], user=self.controller.listanodos[i][3],
+                            password=self.controller.listanodos[i][4], port=self.controller.listanodos[i][5])
+                cur = conn.cursor()
+                #cur.execute("CREATE  TABLE "+tabla+" (id int);")
+
+                #listaColumnas = [['id', 'int'], ['nombre', 'varchar(30)'], ['apellido', 'varchar(30)'], ['edad', 'int']]
+
+                listaC = self.controller.listaColumnas
+                print(listaC)
+                listaC = str(listaC)
+                listaC = listaC.replace("[", "")
+                listaC = listaC.replace("]", "")
+                listaC = listaC.replace("',", "")
+                listaC = listaC.replace("'", "")
+                listaC = listaC.replace("',", "")
+                listaC = listaC.replace(" ", "")
+                print(listaC)
+                cur.execute("CREATE  TABLE "+tabla+" ("+listaC+");")
+
+                
+                conn.commit()
+                conn.close()
+                tk.messagebox.showinfo("Tabla Secundario", "Se ha creado la tabla secundario en el nodo " + nodo[0])
+
+
+       
+
+ #fin de pagina 2       
+
+class PaginaColumnas(tk.Frame):
+    #constructor principal
+    def __init__(self, parent, controller):
+        tk.Frame.__init__(self, parent)
+        self.controller = controller
+        label = tk.Label(self, text="Creacion de Columnas", font=controller.title_font)
         label.pack(side="top", fill="x", pady=10)
         button = tk.Button(self, text="Go to the start page",
-                           command=lambda: controller.show_frame("StartPage"))
+                           command=lambda: controller.show_frame("PageTwo"))
         button.pack()
+
+
+        #crear un label que diga "Ingrese el nombre de la tabla en la que desea crear la columna"
+        self.label = tk.Label(self, text="Ingrese el nombre de la tabla en la que desea crear la columna", font = ("Arial Black",10,"bold"))
+        self.label.pack(side="top", fill="x", pady=10)
+        #crear un entry para ingresar el nombre de la tabla
+        self.entry1 = tk.Entry(self)
+        self.entry1.pack(side = "top", fill="x", pady=10)
+
+
+        #crear un label que diga "Nombre de la Columna"
+        self.label = tk.Label(self, text="Nombre de la Columna", font = ("Arial Black",10,"bold"))
+        self.label.pack(side="top", fill="x", pady=10)
+        #crear un entry para ingresar el nombre de la columna
+        self.entry2 = tk.Entry(self)
+        self.entry2.pack(side = "top", fill="x", pady=10)
+
+        #crear un label que diga "Tipo de dato"
+        self.label = tk.Label(self, text="Tipo de dato", font = ("Arial Black",10,"bold"))
+        self.label.pack(side="top", fill="x", pady=10)
+        #crear un entry para ingresar el tipo de dato
+        self.entry3 = tk.Entry(self)
+        self.entry3.pack(side = "top", fill="x", pady=10)
+
+        #crear un label que diga, seleccionar como llave primaria
+        self.label = tk.Label(self, text="Seleccionar como llave primaria", font = ("Arial Black",10,"bold"))
+        self.label.pack(side="top", fill="x", pady=10)
+        
+        #crear un radio button con 2 opciones: "si" y "no"
+        self.radio = tk.Radiobutton(self, text="Si", value=1)
+        self.radio.pack(side = "top", fill="x", pady=10)
+        self.radio = tk.Radiobutton(self, text="No", value=2)
+        self.radio.pack(side = "top", fill="x", pady=10)
+
+    
+       #crear un boton para crear la columna en la tabla ingresada
+        btnCrearColumna = tk.Button(self, text="Crear columna", width=20, bg="light sky blue", font=("Arial Black", 10, "bold"),
+                            command=lambda: crearColumna())
+        btnCrearColumna.pack()
+        btnCrearColumna.configure(background="Gainsboro")
+
+       #crear un querry e insertar la columna en la tabla ingresada
+        def crearColumna():
+                tabla = self.entry1.get()
+                columna = self.entry2.get()
+                tipo = self.entry3.get()
+                #se crea la coneccion del nodo preseleccionado
+                conn = psycopg2.connect(host= self.controller.listanodos[0][1], database=self.controller.listanodos[0][2], user=self.controller.listanodos[0][3],
+                                password=self.controller.listanodos[0][4], port=self.controller.listanodos[0][5])
+
+                cur = conn.cursor()
+                #preguntar si el radio button esta seleccionado en si o no
+            
+                if self.radio == 1:
+                    cur.execute("ALTER TABLE "+tabla+" ADD COLUMN "+columna+" "+tipo+";")
+                    #cur.execute("ALTER TABLE "+tabla+" ADD PRIMARY KEY ("+columna+");")
+                    cur.execute("ALTER TABLE "+tabla+" ADD CONSTRAINT pk PRIMARY KEY ("+columna+");")
+
+            
+
+                else:
+                    cur.execute("ALTER TABLE "+tabla+" ADD COLUMN "+columna+" "+tipo+";")
+
+                conn.commit()
+                conn.close()
+
+                #se envia una alerta si se logro crear la columna
+                tk.messagebox.showinfo("Tabla", "Tabla creada exitosamente")
+
+           
 
 class TerceraPagina(tk.Frame):
 
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         self.controller = controller
-        label = tk.Label(self, text="This is page 3", font=controller.title_font)
+        label = tk.Label(self, text="Segmentación Horizontal", font=controller.title_font)
         label.pack(side="top", fill="x", pady=10)
+        
+        #self.check = tk.Checkbutton(self, text="Segmentación Horizontal", font = ("Arial Black",10,"bold"))
+        #self.check.pack(side="top", fill="x", pady=10)
+        
         button = tk.Button(self, text="Go to the start page",
                            command=lambda: controller.show_frame("StartPage"))
-        button.pack()
+        button.pack(side = "bottom", fill="x", pady=10)
+
+        self.label = tk.Label(self, text="Cree las tablas de los nodos secundarios", font = ("Arial Black",10,"bold"))
+        self.label.pack(side="top", fill="x", pady=10)
+        
+        #crear un boton para crear la tabla
+        btnCrearTabla = tk.Button(self, text="Crear tabla", width=20, bg="light sky blue", font=("Arial Black", 10, "bold"),
+                            command=lambda: crearTabla()) 
+
+        btnCrearTabla.pack()
+        btnCrearTabla.configure(background="Gainsboro")
+                        
+                                  
+        self.label = tk.Label(self, text="Ingrese el nombre de la tabla", font = ("Arial Black",10,"bold"))
+        self.label.pack(side="top", fill="x", pady=10)
+        #crear un entry para ingresar el nombre de la tabla
+        self.entry = tk.Entry(self)
+        self.entry.pack(side = "top", fill="x", pady=10)
+        
+        self.label = tk.Label(self, text="Ingrese las columnas", font = ("Arial Black",10,"bold"))     
+        self.label.pack(side="top", fill="x", pady=10)
+        
+        #hacer un entry para ingresar la cantidad de columnas
+        self.entry = tk.Entry(self)
+        self.entry.pack(side = "top", fill="x", pady=10)
+        
+        self.lista = self.controller.listanodos
+        self.checklist = tk.Listbox(self, selectmode=tk.MULTIPLE)
+        self.checklist.pack(side=tk.LEFT, fill=tk.BOTH, pady = 10, padx = 10)
+        self.checklist.delete(0, tk.END)
+        for item in self.lista:
+            self.checklist.insert(tk.END, item)
+        def actualizar():
+            self.lista = self.controller.listanodos
+            self.checklist.delete(0, tk.END)
+            for item in self.lista:
+                self.checklist.insert(tk.END, item)
+        
+        #boton para actualizar la lista de nodos
+        btnActualizar = tk.Button(self, text="Actualizar", width=20, bg="light sky blue", font=("Arial Black", 10, "bold"),
+                            command=lambda: actualizar())
+        btnActualizar.pack()
+        btnActualizar.configure(background="Gainsboro")    
+#crear boton de ingresarTodosDatos
+        btnIngresarTodosDatos = tk.Button(self, text="Ingresar todos los datos", width=20, bg="light sky blue", font=("Arial Black", 10, "bold"),
+                            command=lambda: ingresarTodosDatos())       
+        btnIngresarTodosDatos.pack()    
+        btnIngresarTodosDatos.configure(background="Gainsboro")
+        
 
 
 
